@@ -102,9 +102,10 @@ app.post('/pokemons', async (req, res) => {
 
     // Trouver le dernier ID pour générer le prochain
     const lastPokemon = await pokemon.findOne({}).sort({ id: -1 });
-    const newId = lastPokemon ? lastPokemon.id + 1 : 1;
+    const newId = lastPokemon ? lastPokemon.id + 1 : 1; 
 
     // Créer le nouveau Pokémon
+    const imageLink = 'https://gemini.google.com/share/dba299c410f0';
     const newPokemon = new pokemon({
       id: newId,
       name: {
@@ -119,7 +120,7 @@ app.post('/pokemons', async (req, res) => {
         SpecialDefense: base.SpecialDefense || 50,
         Speed: base.Speed || 50
       },
-      image: `http://localhost:3000/assets/pokemons/${newId}.png` || 'https://gemini.google.com/share/dba299c410f0'
+      image: imageLink ||`http://localhost:3000/assets/pokemons/${newId}.png`
     });
 
     const savedPokemon = await newPokemon.save();
@@ -134,6 +135,12 @@ app.post('/pokemons', async (req, res) => {
 app.put('/pokemons/:id', async (req, res) => {
   try {
     const pokeId = parseInt(req.params.id, 10);
+    
+    // Vérifier si le body existe
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({ error: 'Request body is empty or missing' });
+    }
+
     const { name, type, base, image } = req.body;
 
     // Vérifier si le Pokémon existe
