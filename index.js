@@ -7,6 +7,10 @@ app.get('/', (req, res) => {
   res.send('Hello, World!');
 });
 
+app.get('/goodbye', (req, res) => {
+  res.send('Goodbye, World!!');
+});
+
 
 console.log('Server is set up. Ready to start listening on a port.');
 
