@@ -1,14 +1,23 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import pokemon from './schema/pokemon.js';
 
 import './connect.js';
+
+// Pour obtenir __dirname en ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
 // Middleware pour permettre les requêtes depuis le front
 app.use(cors());
 app.use(express.json());
+
+// Permettre l'accès aux images
+app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
 app.get('/pokemons', async (req, res) => {
   try {
