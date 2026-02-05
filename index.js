@@ -14,7 +14,6 @@ const app = express();
 
 // Middleware pour permettre les requêtes depuis le front
 app.use(cors());
-app.use(express.json());
 
 // Permettre l'accès aux images
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
