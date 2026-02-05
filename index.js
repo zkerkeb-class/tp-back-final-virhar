@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import pokemon from './schema/pokemon.js';
 
@@ -14,6 +15,9 @@ const app = express();
 
 // Middleware pour permettre les requêtes depuis le front
 app.use(cors());
+
+// Middleware pour parser le body JSON des requêtes
+app.use(express.json());
 
 // Permettre l'accès aux images
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
@@ -101,7 +105,7 @@ app.delete('/pokemons/:id', async (req, res) => {
 // Create a new pokemon
 app.post('/pokemons', async (req, res) => {
   try {
-    const { name, type, base } = req.body;
+    const { name, type, base, image } = req.body;
 
     // Validation des champs requis
     if (!name || !name.french || !type || !base) {
@@ -112,8 +116,21 @@ app.post('/pokemons', async (req, res) => {
     const lastPokemon = await pokemon.findOne({}).sort({ id: -1 });
     const newId = lastPokemon ? lastPokemon.id + 1 : 1; 
 
-    // Créer le nouveau Pokémon
-    const imageLink = 'https://gemini.google.com/share/dba299c410f0';
+    // Télécharger et sauvegarder l'image si une URL est fournie
+    const imagePath = path.join(__dirname, 'assets', 'pokemons', `${newId}.png`);
+    if (image && image.startsWith('http')) {
+      try {
+        const response = await fetch(image);
+        if (response.ok) {
+          const buffer = Buffer.from(await response.arrayBuffer());
+          fs.writeFileSync(imagePath, buffer);
+        }
+      } catch (imgError) {
+        console.error('Erreur téléchargement image:', imgError);
+      }
+    }
+
+    // Créer le nouveau Pokémon avec le lien local
     const newPokemon = new pokemon({
       id: newId,
       name: {
@@ -128,7 +145,7 @@ app.post('/pokemons', async (req, res) => {
         SpecialDefense: base.SpecialDefense || 50,
         Speed: base.Speed || 50
       },
-      image: imageLink ||`http://localhost:3000/assets/pokemons/${newId}.png`
+      image: `http://localhost:3000/assets/pokemons/${newId}.png`
     });
 
     const savedPokemon = await newPokemon.save();
