@@ -1,13 +1,14 @@
-import moongose from 'mongoose';
+import mongoose from 'mongoose';
 
+// Connexion à MongoDB
 const connectDB = async () => {
     try {
-        await moongose.connect('mongodb://localhost:27017/pokemon_database');
-        console.log('Connected to MongoDB successfully.');
+        await mongoose.connect('mongodb://localhost:27017/pokemon_database');
+        console.log('Connected to MongoDB');
     } catch (error) {
-        console.error('Error connecting to MongoDB:', error);
+        console.error('MongoDB connection error:', error);
         process.exit(1);
     }
 };
 
- connectDB()
+connectDB();
