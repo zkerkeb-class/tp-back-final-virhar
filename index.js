@@ -3,6 +3,7 @@ import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import multer from 'multer';
 import pokemon from './schema/pokemon.js';
 import './connect.js';
 
@@ -11,6 +12,20 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// Configuration de multer pour l'upload d'images
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dir = path.join(__dirname, 'assets', 'pokemons');
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        // Nom temporaire, sera renommé après avec l'ID du pokémon
+        cb(null, 'temp_' + Date.now() + '.png');
+    }
+});
+const upload = multer({ storage });
 
 app.use(cors());
 app.use(express.json());
@@ -90,12 +105,15 @@ app.delete('/pokemons/:id', async (req, res) => {
     }
 });
 
-// Route POST - Créer un nouveau pokémon
-app.post('/pokemons', async (req, res) => {
+// Route POST - Créer un nouveau pokémon (supporte upload fichier ou URL)
+app.post('/pokemons', upload.single('imageFile'), async (req, res) => {
     try {
         const { name, type, base, image } = req.body;
+        const parsedName = typeof name === 'string' ? JSON.parse(name) : name;
+        const parsedType = typeof type === 'string' ? JSON.parse(type) : type;
+        const parsedBase = typeof base === 'string' ? JSON.parse(base) : base;
 
-        if (!name || !name.french || !type || !base) {
+        if (!parsedName || !parsedName.french || !parsedType || !parsedBase) {
             return res.status(400).json({ error: 'Missing required fields (name.french, type, base)' });
         }
 
@@ -111,8 +129,11 @@ app.post('/pokemons', async (req, res) => {
             fs.mkdirSync(pokemonsDir, { recursive: true });
         }
 
-        // Télécharger l'image si URL fournie
-        if (image && image.startsWith('http')) {
+        if (req.file) {
+            // Fichier uploadé depuis l'ordinateur : renommer avec l'ID
+            fs.renameSync(req.file.path, imagePath);
+        } else if (image && image.startsWith('http')) {
+            // Télécharger l'image depuis une URL
             try {
                 const response = await fetch(image, {
                     headers: { 'User-Agent': 'Mozilla/5.0' }
@@ -124,22 +145,20 @@ app.post('/pokemons', async (req, res) => {
             } catch (imgError) {
                 // Ignorer les erreurs d'image
             }
-        } else if (image && fs.existsSync(image)) {
-            fs.copyFileSync(image, imagePath);
         }
 
         // Créer le pokémon
         const newPokemon = new pokemon({
             id: newId,
-            name: { french: name.french },
-            type,
+            name: { french: parsedName.french },
+            type: parsedType,
             base: {
-                HP: base.HP || 50,
-                Attack: base.Attack || 50,
-                Defense: base.Defense || 50,
-                SpecialAttack: base.SpecialAttack || 50,
-                SpecialDefense: base.SpecialDefense || 50,
-                Speed: base.Speed || 50
+                HP: parsedBase.HP || 50,
+                Attack: parsedBase.Attack || 50,
+                Defense: parsedBase.Defense || 50,
+                SpecialAttack: parsedBase.SpecialAttack || 50,
+                SpecialDefense: parsedBase.SpecialDefense || 50,
+                Speed: parsedBase.Speed || 50
             },
             image: `http://localhost:3000/assets/pokemons/${newId}.png`
         });
